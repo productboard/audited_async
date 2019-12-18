@@ -72,12 +72,20 @@ module Audited::Auditor::AuditedInstanceMethods
   end
 
   def perform_async_audit(method, changes = nil)
+    job_options = AuditedAsync.config.job_options
+
     AuditedAsync.config
                 .job
-                .perform_async class_name: self.class.name,
-                               record_id: send(self.class.primary_key.to_sym),
-                               action: method,
-                               audited_changes: (changes || audited_attributes).to_json,
-                               comment: audit_comment
+                .perform_in(
+                  # Works with wait = nil, wait = Time.now, wait = 2.seconds
+                  job_options && job_options[:wait],
+                  {
+                    class_name: self.class.name,
+                    record_id: send(self.class.primary_key.to_sym),
+                    action: method,
+                    audited_changes: (changes || audited_attributes).to_json,
+                    comment: audit_comment
+                  }
+                )
   end
 end
