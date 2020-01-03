@@ -79,13 +79,32 @@ module Audited::Auditor::AuditedInstanceMethods
                 .perform_in(
                   # Works with wait = nil, wait = Time.now, wait = 2.seconds
                   job_options && job_options[:wait],
-                  {
-                    class_name: self.class.name,
-                    record_id: send(self.class.primary_key.to_sym),
-                    action: method,
+                  audite_attributes.merge(
+                    class_name:      self.class.name,
+                    record_id:       send(self.class.primary_key.to_sym),
+                    action:          method,
                     audited_changes: (changes || audited_attributes).to_json,
-                    comment: audit_comment
-                  }
+                    comment:         audit_comment
+                  )
                 )
+  end
+
+  def audite_attributes
+    user = audit_current_user
+
+    {
+      space_id:       RequestStore[:current_space_id],
+      remote_address: ::Audited.store[:current_remote_address],
+      request_uuid:   ::Audited.store[:current_request_uuid],
+      user_type:      user && user.class.to_s,
+      user_id:        user && user.id
+    }
+  end
+
+  # https://github.com/collectiveidea/audited/blob/07209850986353b60adc3789ee7fa8c02b338e41/lib/audited/audit.rb#L179
+  def audit_current_user
+    ::Audited.store[:audited_user] ||
+    ::Audited.store[:current_user].try!(:call) ||
+    RequestStore[:current_user]
   end
 end
