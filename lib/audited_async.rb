@@ -72,6 +72,8 @@ module Audited::Auditor::AuditedInstanceMethods
   end
 
   def perform_async_audit(method, changes = nil)
+    return unless auditing_enabled
+
     job_options = AuditedAsync.config.job_options
 
     AuditedAsync.config
