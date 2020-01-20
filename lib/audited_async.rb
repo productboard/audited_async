@@ -81,7 +81,7 @@ module Audited::Auditor::AuditedInstanceMethods
                 .perform_in(
                   # Works with wait = nil, wait = Time.now, wait = 2.seconds
                   job_options && job_options[:wait],
-                  audite_attributes.merge(
+                  audit_attributes.merge(
                     class_name:      self.class.name,
                     record_id:       send(self.class.primary_key.to_sym),
                     action:          method,
@@ -92,16 +92,20 @@ module Audited::Auditor::AuditedInstanceMethods
                 )
   end
 
-  def audite_attributes
+  def audit_attributes
     user = audit_current_user
 
     {
-      space_id:       RequestStore[:current_space_id],
+      space_id:       audit_space_id,
       remote_address: ::Audited.store[:current_remote_address],
       request_uuid:   ::Audited.store[:current_request_uuid],
       user_type:      user && user.class.to_s,
       user_id:        user && user.id
     }
+  end
+
+  def audit_space_id
+    try(:space_id) || RequestStore[:current_space_id]
   end
 
   # https://github.com/collectiveidea/audited/blob/07209850986353b60adc3789ee7fa8c02b338e41/lib/audited/audit.rb#L179
